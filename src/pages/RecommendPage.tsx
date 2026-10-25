@@ -5,12 +5,18 @@ import Footer from '../components/Footer';
 import BookCover from '../components/BookCover';
 import StarRating from '../components/StarRating';
 import { BOOKS } from '../data/books';
-import { Book } from '../data/types';
+import { Book, Genre } from '../data/types';
 import { useShelf } from '../store/ShelfContext';
 import { useAuth } from '../store/AuthContext';
 import { useModal } from '../store/ModalContext';
 
-const QUESTIONS = [
+type QuestionOption = {
+  label: string;
+  tags: string[];
+  genre?: Genre;
+};
+
+const QUESTIONS: { id: string; text: string; options: QuestionOption[] }[] = [
   {
     id: 'q1',
     text: 'Bạn muốn cuốn sách mang lại cảm giác gì?',
@@ -35,9 +41,9 @@ const QUESTIONS = [
     id: 'q3',
     text: 'Bạn thích kiểu sách nào?',
     options: [
-      { label: 'Văn học', genre: 'Văn học' as const, tags: [] },
-      { label: 'Tâm lý', genre: 'Tâm lý' as const, tags: [] },
-      { label: 'Kinh điển', genre: 'Kinh điển' as const, tags: [] },
+      { label: 'Văn học', genre: 'Văn học' as Genre, tags: [] },
+      { label: 'Tâm lý', genre: 'Tâm lý' as Genre, tags: [] },
+      { label: 'Kinh điển', genre: 'Kinh điển' as Genre, tags: [] },
       { label: 'Đang thịnh hành', tags: ['popular'] },
     ],
   },
@@ -45,14 +51,14 @@ const QUESTIONS = [
 
 function computeRecommendations(answers: (number | null)[]): { book: Book; reason: string; score: number }[] {
   const allTags: string[] = [];
-  let preferredGenre: string | null = null;
+  let preferredGenre: Genre | null = null;
   let wantTrending = false;
 
   answers.forEach((ansIdx, qIdx) => {
     if (ansIdx === null) return;
     const option = QUESTIONS[qIdx].options[ansIdx];
     allTags.push(...option.tags);
-    if ('genre' in option && option.genre) preferredGenre = option.genre;
+    if (option.genre) preferredGenre = option.genre;
     if (option.tags.includes('popular')) wantTrending = true;
   });
 
@@ -67,15 +73,15 @@ function computeRecommendations(answers: (number | null)[]): { book: Book; reaso
       }
     });
 
-    if (preferredGenre && book.genres.includes(preferredGenre as any)) score += 1;
+    if (preferredGenre && book.genres.includes(preferredGenre)) score += 1;
     if (wantTrending && book.trending) score += 1;
-    score += book.popularity / 200; // small popularity nudge
+    score += book.popularity / 200;
 
     let reason = '';
     if (matchedTags.length > 0) {
       const tagLabels = matchedTags.slice(0, 2).join(', ');
       reason = `Phù hợp với tâm trạng ${tagLabels} của bạn.`;
-    } else if (preferredGenre && book.genres.includes(preferredGenre as any)) {
+    } else if (preferredGenre && book.genres.includes(preferredGenre)) {
       reason = `Đây là một cuốn ${preferredGenre} được yêu thích.`;
     } else {
       reason = 'Cuốn sách được cộng đồng đánh giá cao.';
@@ -105,12 +111,13 @@ export default function RecommendPage() {
     if (q1Prefill) {
       const idx = QUESTIONS[0].options.findIndex((o) => o.label === q1Prefill);
       if (idx >= 0) {
-        const newAnswers = [...answers];
-        newAnswers[0] = idx;
-        setAnswers(newAnswers);
+        setAnswers((prev) => {
+          const next = [...prev];
+          next[0] = idx;
+          return next;
+        });
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q1Prefill]);
 
   const currentAnswer = answers[currentQ];
@@ -158,7 +165,6 @@ export default function RecommendPage() {
       <Header />
       <main className="flex-1">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-14">
-          {/* Header */}
           <div className="text-center mb-10">
             <p className="text-muted text-xs font-bold tracking-widest uppercase mb-3">Gợi ý riêng cho bạn</p>
             <h1 className="text-4xl sm:text-5xl font-extrabold text-ink leading-tight tracking-tight">
@@ -170,7 +176,6 @@ export default function RecommendPage() {
           </div>
 
           {!showResults ? (
-            /* ── Survey card ─────────────────────────────────────────── */
             <div className="bg-paper rounded-2xl shadow-md border border-soft/60 p-6 sm:p-8">
               {/* Progress */}
               <div className="flex items-center justify-between mb-6">
@@ -187,10 +192,8 @@ export default function RecommendPage() {
                 </div>
               </div>
 
-              {/* Question */}
               <h2 className="text-xl sm:text-2xl font-bold text-ink mb-6">{QUESTIONS[currentQ].text}</h2>
 
-              {/* Options grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                 {QUESTIONS[currentQ].options.map((opt, idx) => (
                   <button
@@ -211,7 +214,6 @@ export default function RecommendPage() {
                 <p className="text-muted text-sm mb-3">Hãy chọn một đáp án để tiếp tục</p>
               )}
 
-              {/* Navigation */}
               <div className="flex items-center justify-between">
                 {currentQ > 0 ? (
                   <button
@@ -231,7 +233,6 @@ export default function RecommendPage() {
               </div>
             </div>
           ) : (
-            /* ── Results ─────────────────────────────────────────────── */
             <div className="flex flex-col gap-8">
               <div className="text-center">
                 <h2 className="text-2xl font-extrabold text-ink mb-3">Gợi ý cho bạn hôm nay</h2>
