@@ -93,20 +93,24 @@ export default function BookDetailPage() {
 
   // Star distribution
   const distribution = useMemo(() => {
-    const dist: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-    localReviews.forEach((r) => { dist[r.rating] = (dist[r.rating] ?? 0) + 1; });
-    // Add base distribution proportionally
+    const dist: Record<string, number> = { '5': 0, '4': 0, '3': 0, '2': 0, '1': 0 };
+    localReviews.forEach((r) => { dist[String(r.rating)] = (dist[String(r.rating)] ?? 0) + 1; });
     const total = book.baseRatingCount;
     const avg = book.baseRating;
-    // rough approximation: weight stars around avg
-    const approxDist: Record<number, number> = {
-      5: Math.round(total * (avg >= 4.5 ? 0.6 : 0.4)),
-      4: Math.round(total * 0.25),
-      3: Math.round(total * 0.1),
-      2: Math.round(total * 0.03),
-      1: Math.round(total * 0.02),
+    const approxDist: Record<string, number> = {
+      '5': Math.round(total * (avg >= 4.5 ? 0.6 : 0.4)),
+      '4': Math.round(total * 0.25),
+      '3': Math.round(total * 0.1),
+      '2': Math.round(total * 0.03),
+      '1': Math.round(total * 0.02),
     };
-    return { 5: approxDist[5] + dist[5], 4: approxDist[4] + dist[4], 3: approxDist[3] + dist[3], 2: approxDist[2] + dist[2], 1: approxDist[1] + dist[1] };
+    return {
+      '5': approxDist['5'] + dist['5'],
+      '4': approxDist['4'] + dist['4'],
+      '3': approxDist['3'] + dist['3'],
+      '2': approxDist['2'] + dist['2'],
+      '1': approxDist['1'] + dist['1'],
+    };
   }, [book, localReviews]);
 
   const handleShelfAction = (status: ShelfStatus) => {
@@ -300,7 +304,7 @@ export default function BookDetailPage() {
                 <p className="text-muted text-xs mt-1">{totalRatingCount.toLocaleString('vi')} lượt</p>
                 <div className="flex flex-col gap-1.5 mt-4">
                   {[5, 4, 3, 2, 1].map((star) => {
-                    const count = distribution[star] ?? 0;
+                    const count = distribution[String(star)] ?? 0;
                     const pct = totalRatingCount > 0 ? (count / totalRatingCount) * 100 : 0;
                     return (
                       <div key={star} className="flex items-center gap-2">
